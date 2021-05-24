@@ -1,0 +1,18 @@
+activation: leaky_relu
+architecture: fully_connected
+"decoder_\u03B1_offset": 0.0001
+eps: 0.0001
+input_dims: !!python/tuple
+- 1
+- 28
+- 28
+latent_dims:
+- 2
+learning_rate: 0.001
+n_mc_samples: 3
+ood_z_generation_method: gd_aggregate_posterior
+prior_b: null
+prior_epistemic_c: null
+prior_extrapolation_mode: on_centroids
+prior_extrapolation_x: 10000.0
+"\u03C4_ood": 0.5
