@@ -1,0 +1,19 @@
+\documentclass{article}
+\usepackage{a4wide}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{graphicx}
+
+\begin{document}
+
+\noindent
+\resizebox{\textwidth}{!}{
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+  & \textbf{test\_elbo}  & \textbf{test\_expected\_log\_likelihood}  & \textbf{test\_mean\_fit\_rmse}  & \textbf{test\_variance\_fit\_rmse}  & \textbf{test\_sample\_fit\_rmse}  & \textbf{noise\_mean\_uncertainty}  & \textbf{noise\_kl\_divergence} \\ \hline
+benchmarks & \includegraphics[width=8cm]{winner_benchmarks_test_elbo.png} & \includegraphics[width=8cm]{winner_benchmarks_test_expected_log_likelihood.png} & \includegraphics[width=8cm]{winner_benchmarks_test_mean_fit_rmse.png} & \includegraphics[width=8cm]{winner_benchmarks_test_variance_fit_rmse.png} & \includegraphics[width=8cm]{winner_benchmarks_test_sample_fit_rmse.png} & \includegraphics[width=8cm]{winner_benchmarks_noise_mean_uncertainty.png} & \includegraphics[width=8cm]{winner_benchmarks_noise_kl_divergence.png}\\ \hline
+benchmarks\_shifted & \includegraphics[width=8cm]{winner_benchmarks_shifted_test_elbo.png} & \includegraphics[width=8cm]{winner_benchmarks_shifted_test_expected_log_likelihood.png} & \includegraphics[width=8cm]{winner_benchmarks_shifted_test_mean_fit_rmse.png} & \includegraphics[width=8cm]{winner_benchmarks_shifted_test_variance_fit_rmse.png} & \includegraphics[width=8cm]{winner_benchmarks_shifted_test_sample_fit_rmse.png} & \includegraphics[width=8cm]{winner_benchmarks_shifted_noise_mean_uncertainty.png} & \includegraphics[width=8cm]{winner_benchmarks_shifted_noise_kl_divergence.png}\\ \hline
+\end{tabular}
+}
+
+\end{document}
+
