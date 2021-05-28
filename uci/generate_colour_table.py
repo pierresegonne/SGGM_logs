@@ -5,8 +5,11 @@ import os
 import pandas as pd
 import pathlib
 
+from skimage.transform import rescale
 from scipy.stats import norm
 from typing import Dict, List, Tuple, Union
+
+from sggm.styles_ import hex_to_rgb
 
 # INPUT
 FILENAMES = ["benchmarks", "benchmarks_shifted"]
@@ -18,10 +21,21 @@ N = 20  # N trials per dataset per method
 # ----
 
 
-def get_colors(num_methods: int) -> np.ndarray:
-    colormap = plt.get_cmap("tab20b")
-    colors = colormap(np.linspace(0, 1, num_methods))  # (num_methods)x4  (RGBA)
-    return colors
+def get_colours(num_methods: int) -> np.ndarray:
+    colours = [
+        "#006627",
+        "#A6A867",
+        "#92DCE5",
+        "#2B303A",
+        "#F4AC45",
+        "#D64933",
+        "#7D70BA",
+    ]
+    colours = np.array(
+        [list(hex_to_rgb(colours[i], norm=True)) + [1] for i in range(num_methods)]
+    )
+    nan_colour = 0.96
+    return colours, nan_colour
 
 
 def load_experiment(name: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -31,6 +45,9 @@ def load_experiment(name: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     df = pd.read_csv(path, index_col=["experiment_name", "metric"])
     df_std = pd.read_csv(path_std, index_col=["experiment_name", "metric"])
+
+    df = df.drop(columns=["f_gaussian_noise"])
+    df_std = df_std.drop(columns=["f_gaussian_noise"])
 
     return df, df_std
 
@@ -46,12 +63,19 @@ def generate_img_filename(
 
 
 def generate_img(
-    filename: str, metric: str, winner: np.ndarray, colors: np.ndarray
+    filename: str,
+    metric: str,
+    winner: np.ndarray,
+    colours: np.ndarray,
+    nan_colour: float,
 ) -> str:
+    colours = 1 - colours
     num_datasets, num_methods = winner.shape  # (num_datasets)x(num_methods)
     rgb = np.zeros((num_methods, num_datasets, 3))  # (num_methods)x(num_datasets)x3
     for idx_method in range(num_methods):
-        rgb[idx_method] = 1 - np.outer(winner[:, idx_method], colors[idx_method, :-1])
+        rgb[idx_method] = 1 - np.outer(winner[:, idx_method], colours[idx_method, :-1])
+    rgb[rgb != rgb] = nan_colour
+    rgb = rescale(rgb, 100, order=0, multichannel=True)
     outfn = generate_img_filename(filename, metric)
     mpl.image.imsave(outfn, rgb)
     return outfn
@@ -90,15 +114,27 @@ def test_mean_difference(
     return p_value < level
 
 
-def get_winner(metric: str, means: np.ndarray, stds: np.ndarray) -> np.ndarray:
+def get_winner(
+    metric: str, means: np.ndarray, stds: np.ndarray, return_score: bool = True
+) -> np.ndarray:
     if metric[-1] == LOWER:
         winner = means == np.nanmin(
             means, axis=1, keepdims=True
         )  # (num_datasets)x(num_methods)
+        bestval = np.nanmin(
+            means, axis=1, keepdims=True
+        )  # (num_datasets)x(num_methods)
+        score = norm.cdf(bestval, loc=means, scale=stds)
     else:  # upper
         winner = means == np.nanmax(
             means, axis=1, keepdims=True
         )  # (num_datasets)x(num_methods)
+        bestval = np.nanmax(
+            means, axis=1, keepdims=True
+        )  # (num_datasets)x(num_methods)
+        score = 1 - norm.cdf(bestval, loc=means, scale=stds)
+
+    score *= 2
 
     def test_draw(idx_ds: int, idx_winner: int, idx_contender: int) -> bool:
         dist_winner = {
@@ -125,7 +161,10 @@ def get_winner(metric: str, means: np.ndarray, stds: np.ndarray) -> np.ndarray:
         )
     winner_with_draws = np.array(winner_with_draws, dtype=bool)
 
-    return winner_with_draws
+    if return_score:
+        return score
+    else:
+        return winner_with_draws
 
 
 # =====
@@ -136,12 +175,13 @@ if __name__ == "__main__":
     for i_fn, fn in enumerate(FILENAMES):
         # df = mean, df_std = standard deviation
         df, df_std = load_experiment(fn)
+        print(df.index.get_level_values("experiment_name").unique())
 
         methods = list(df.columns)
         num_methods = len(methods)
         metrics = list(df.index.get_level_values("metric").unique())
 
-        colors = get_colors(num_methods)
+        colours, nan_colour = get_colours(num_methods)
 
         if i_fn == 0:
             print_table_header(metrics)
@@ -165,7 +205,7 @@ if __name__ == "__main__":
             # # Produce bar plot
             # y = np.concatenate((np.zeros(1), num_first_places))
             # for k in range(len(methods)):
-            #     plt.bar(y[k], 1, y[k+1], align='edge', color=colors[k])
+            #     plt.bar(y[k], 1, y[k+1], align='edge', color=colours[k])
             # plt.axis('off')
             # plt.axis('equal')
             # outfn = 'bar_' + fn + '_' + metric[:-1] + '.png'
@@ -176,7 +216,7 @@ if __name__ == "__main__":
             winner = get_winner(metric, means, stds)  # (num_datasets)x(num_methods)
 
             # Produce little RGB winner plot
-            outfn = generate_img(fn, metric, winner, colors)
+            outfn = generate_img(fn, metric, winner, colours, nan_colour)
 
             # Print table
             line += " & \\includegraphics[width=8cm]{" + outfn.split("/")[-1] + "}"
